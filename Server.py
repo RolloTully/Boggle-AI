@@ -11,6 +11,8 @@ import shutil
 import tkinter
 init()
 
+''' Old attempt to get this to have a thin linux client to simplify the interaction wih the enviroment so I dont have to drag a huge desktop around'''
+
 class Process():
     def __init__(self):
         self.kernel_sharpening_filter = np.array([[-1,-1,-1],[-1,9,-1],[-1,-1,-1]])

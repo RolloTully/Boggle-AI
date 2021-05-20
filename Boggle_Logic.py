@@ -6,9 +6,14 @@ import numpy as np                 # speed again
 import cv2
 from tqdm import tqdm
 cv2.setUseOptimized(True)
+'''
+
+This is all the logic behind the word searching, i never ended up melding toghter this and the letter recognition so make it fully functional
 
 '''
-IMPORTANT NOTE TO FUTURE ROLLO!!!
+
+'''
+IMPORTANT NOTE TO FUTURE !!!
 RMEMBER THAT THIS PROGRAM USES 27 LETTERS IN ITS APLHABET WITH THE 27TH BEING @ -> Qu and all q's have been removed bringing it back down to 26
 '''
 

@@ -1,0 +1,79 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+import imutils
+import time
+cv2.setUseOptimized(True)
+kernel = np.array([[0,0,0,0,0], [0,0,0,0,0], [0,0,0,0,0], [1,1,1,1,1], [1,1,1,1,1]],np.uint8)
+closingkernel = np.ones((5,5),np.uint8)
+smoothingkernel = np.ones((5,5),np.float32)/25
+
+input = cv2.imread("blankboard.jpg")
+width, height = input.shape[:-1]
+min = min([width, height])/500
+resized = cv2.resize(input, (int(width/min), int(height/min)))
+gray, _, _ = cv2.split(resized)
+cv2.imshow("",gray)
+cv2.waitKey(4000)
+'''Edge detection'''
+gray = cv2.GaussianBlur(gray,(5,5),-1)# removed image noise aka. smoothing
+edges = cv2.Canny(gray, 40, 150, apertureSize = 5)
+_,contours,_ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+index = 0
+current_max = 0
+for x in range(len(contours)):
+    hull = cv2.convexHull(contours[x])
+    hull_area = cv2.contourArea(hull)
+    if hull_area > current_max:
+        current_max = hull_area
+        index = x
+contourpoints = contours[index].reshape(contours[index].shape[0],2)
+midpoint = np.mean(contourpoints, axis=0).astype(np.int16)
+height, width = gray.shape
+outputimg = np.zeros((height,width))
+cv2.drawContours(outputimg, contours[index], -1, 255, -1)
+closedboundary= cv2.morphologyEx(outputimg, cv2.MORPH_CLOSE, closingkernel)
+ret,thresh_binary = cv2.threshold(closedboundary,127,255,cv2.THRESH_BINARY)
+height, width = closedboundary.shape
+mask = np.zeros((height+2,width+2)).astype(np.uint8)
+maskedimage = cv2.floodFill(thresh_binary.astype(np.uint8), mask, tuple(midpoint), newVal=255)[1]
+maskedpoints = np.where(maskedimage == 255)
+background = np.where(maskedimage == 0)
+print(maskedpoints)
+max_x = np.amax(maskedpoints[1])
+max_y = np.amax(maskedpoints[0])
+min_x = np.amin(maskedpoints[1])
+min_y = np.amin(maskedpoints[0])
+edges = edges[min_y:max_y,min_x:max_x]
+gray[background[0], background[1]]=0
+gray = gray[min_y:max_y,min_x:max_x]
+resized[background[0], background[1]]=0
+resized = resized[min_y:max_y,min_x:max_x]
+maskedimage = maskedimage[min_y:max_y,min_x:max_x]
+lines = cv2.HoughLinesP(edges, 1, np.pi/180, 30,minLineLength = 40, maxLineGap=50)
+angles = []
+for line in lines:
+   x1, y1, x2, y2 = line[0]
+   angles.append((((np.arctan2([y1-y2], [x1-x2])/np.pi)*180)+180).astype(np.int))
+unique, counts = np.unique(angles, return_counts=True)
+
+unique = unique%90
+new_counts = []
+for x in range(max(unique)):
+    new_counts.append(np.sum(counts[np.where(unique == x)]))
+counts = new_counts
+amounttorotate = -np.argmax(counts)
+print(amounttorotate)
+correctedimage = imutils.rotate_bound(gray, amounttorotate)
+
+
+cv2.imshow("",resized)
+cv2.waitKey(4000)
+
+
+#ret, test_image = cv2.threshold(correctedimage,110,255,0)
+test_image = maskedimage.flatten()
+unique, counts = np.unique(test_image, return_counts=True)
+edges = cv2.Canny(resized, 40, 150, apertureSize = 5)
+cv2.imshow("",edges)
+cv2.waitKey(4000)
